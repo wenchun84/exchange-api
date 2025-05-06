@@ -11,7 +11,6 @@ app = FastAPI()
 # ----------------------------
 # 掛載 static 資料夾：根網址 (/) 直接送出 static/index.html
 # ----------------------------
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
 # ----------------------------
 # CORS：允許所有網域對 GET 端點
@@ -81,3 +80,4 @@ async def latest(base: str = "USD", symbols: str = ""):
     except Exception as e:
         print("latest error:", e)
         raise HTTPException(status_code=502, detail="rate‑service unavailable")
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
