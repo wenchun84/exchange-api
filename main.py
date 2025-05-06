@@ -9,8 +9,7 @@ import httpx, os
 app = FastAPI()
 
 # ----------------------------
-# 掛載 static 資料夾
-# 讓根網址 (/) 或 /static/ 能直接送出 HTML/CSS/JS
+# 掛載 static 資料夾：根網址 (/) 直接送出 static/index.html
 # ----------------------------
 app.mount("/", StaticFiles(directory="static", html=True), name="static")
 
@@ -28,7 +27,7 @@ app.add_middleware(
 # 外部匯率 API 設定
 # ----------------------------
 HOST = "https://api.exchangerate.host"
-API_KEY = os.getenv("XRATE_KEY")          # 若你有設定金鑰，就會讀到；沒有則為 None
+API_KEY = os.getenv("XRATE_KEY")          # 若你的帳號需要 key，請在 Render 環境變數設定
 
 # ----------------------------
 # 健康檢查
@@ -38,7 +37,7 @@ def ping():
     return {"status": "ok"}
 
 # ----------------------------
-# 匯率換算端點
+# 單一換算 /convert
 # ----------------------------
 @app.get("/convert")
 async def convert(
@@ -56,16 +55,16 @@ async def convert(
         r.raise_for_status()
 
         data = r.json()
-        if not data.get("success") or "result" not in data:
+        if not data.get("success", True) or "result" not in data:
             raise ValueError(data.get("error") or "No result")
 
         return {"result": data["result"]}
 
+    except Exception as e:
+        print("convert error:", e)
+        raise HTTPException(status_code=502, detail="rate‑service unavailable")
 
-    # ----------------------------
-# 代理 /latest：一次抓多幣別即時匯率，避免瀏覽器 CORS
-# ----------------------------
-@app.get("/latest")
+
 # ----------------------------
 # 代理 /latest：一次抓多幣別即時匯率，避免瀏覽器 CORS
 # ----------------------------
@@ -82,12 +81,5 @@ async def latest(base: str = "USD", symbols: str = ""):
         return r.json()
 
     except Exception as e:
-        # 印到 Render Log 方便除錯
         print("latest error:", e)
-        raise HTTPException(status_code=502, detail="rate‑service unavailable")
-
-
-    except Exception as e:
-        # 印到 Render Logs，方便除錯
-        print("convert error:", e)
         raise HTTPException(status_code=502, detail="rate‑service unavailable")
