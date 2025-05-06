@@ -40,14 +40,13 @@
 const API     = "https://api.exchangerate.host/latest";
 const symbols = ["USD","TWD","JPY","EUR","CNY","HKD","GBP","AUD","SGD","KRW"];
 
-// 抓取 DOM
 const baseSel = document.getElementById('base');
 const tbody   = document.getElementById('tbody');
 const baseLbl = document.getElementById('baseLabel');
 const ts      = document.getElementById('ts');
 
 baseSel.addEventListener("change", loadRates);
-loadRates();  // 首次載入
+loadRates();
 
 async function loadRates(){
   const base = baseSel.value;
@@ -55,29 +54,17 @@ async function loadRates(){
   tbody.innerHTML = '<tr><td colspan="2">載入中…</td></tr>';
 
   try {
-    // 一次抓全部匯率
-    const url = `${API}?base=${base}&symbols=${symbols.filter(s=>s!==base).join(",")}`;
-    const res = await fetch(url);
+    const url  = `${API}?base=${base}&symbols=${symbols.filter(s=>s!==base).join(",")}`;
+    const res  = await fetch(url);
     const data = await res.json();
 
-    if (!data.rates) throw new Error("no rates");
+    if (!data.rates) throw "";
 
-    // 把 rates 轉成表格列
-    const rows = Object.entries(data.rates)
-      .map(([k,v]) => 
-        `<tr>
-           <td>${k}</td>
-           <td class="text-end">${v.toFixed(4)} ${k}</td>
-         </tr>`
-      ).join("");
-
-    tbody.innerHTML = rows;
-  } catch(err) {
-    console.error("rate load error:", err);
-    tbody.innerHTML = 
-      `<tr>
-         <td colspan="2" class="text-warning">服務暫時不可用</td>
-       </tr>`;
+    tbody.innerHTML = Object.entries(data.rates)
+      .map(([k,v])=>`<tr><td>${k}</td><td class="text-end">${v.toFixed(4)} ${k}</td></tr>`)
+      .join("");
+  } catch {
+    tbody.innerHTML = '<tr><td colspan="2" class="text-warning">服務暫時不可用</td></tr>';
   }
 
   ts.textContent = "更新時間：" + new Date().toLocaleString();
