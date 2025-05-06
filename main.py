@@ -71,9 +71,7 @@ async def convert(
 @app.get("/latest")
 async def latest(base: str = "USD", symbols: str = ""):
     params = {"base": base, "symbols": symbols}
-    if API_KEY:
-        params["access_key"] = API_KEY
-
+   
     try:
         async with httpx.AsyncClient(timeout=8) as client:
             r = await client.get(f"{HOST}/latest", params=params)
