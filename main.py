@@ -61,6 +61,21 @@ async def convert(
 
         return {"result": data["result"]}
 
+
+    # ----------------------------
+# 代理 /latest：一次抓多幣別即時匯率，避免瀏覽器 CORS
+# ----------------------------
+@app.get("/latest")
+async def latest(base: str = "USD", symbols: str = ""):
+    params = {"base": base, "symbols": symbols}
+    if API_KEY:
+        params["access_key"] = API_KEY
+
+    async with httpx.AsyncClient(timeout=8) as client:
+        r = await client.get(f"{HOST}/latest", params=params)
+    r.raise_for_status()
+    return r.json()
+
     except Exception as e:
         # 印到 Render Logs，方便除錯
         print("convert error:", e)
