@@ -1,3 +1,5 @@
+from fastapi.staticfiles import StaticFiles
+app.mount("/", StaticFiles(directory="static", html=True), name="static")
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
