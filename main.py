@@ -1,14 +1,38 @@
 from fastapi import FastAPI, Query, HTTPException
-import httpx, os                     # ← 加入 os
+import httpx, os
 
 app = FastAPI()
+
 HOST = "https://api.exchangerate.host"
-API_KEY = os.getenv("XRATE_KEY")     # ← 讀環境變數
+API_KEY = os.getenv("XRATE_KEY")      # 從 Render 環境變數讀金鑰
 
-...
 
-async with httpx.AsyncClient(timeout=8) as c:
-    params = {"from": from_, "to": to, "amount": amount}
-    if API_KEY:                      # ← 把金鑰加進參數
-        params["access_key"] = API_KEY
-    r = await c.get(f"{HOST}/convert", params=params, follow_redirects=True)
+@app.get("/")                         # 健康檢查
+def root():
+    return {"status": "ok"}
+
+
+@app.get("/convert")
+async def convert(
+    from_: str = Query(..., alias="from"),
+    to: str = Query(...),
+    amount: float = Query(...)
+):
+    try:
+        params = {"from": from_, "to": to, "amount": amount}
+        if API_KEY:
+            params["access_key"] = API_KEY       # 把金鑰帶進去
+
+        async with httpx.AsyncClient(timeout=8) as c:
+            r = await c.get(f"{HOST}/convert", params=params, follow_redirects=True)
+        r.raise_for_status()
+
+        data = r.json()
+        if not data.get("success") or "result" not in data:
+            raise ValueError(data.get("error") or "no result")
+
+        return {"result": data["result"]}
+
+    except Exception as e:
+        print("convert error:", e)                # 印在 Render log
+        raise HTTPException(status_code=502, detail="rate‑service unavailable")
