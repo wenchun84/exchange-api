@@ -35,7 +35,7 @@
   </div>
 
   <script>
-    // 同源呼叫自己寫的 /convert
+    // ← 一定要改成同源的 /convert
     const API = "/convert";
     const symbols = ["USD","TWD","JPY","EUR","CNY","HKD","GBP","AUD","SGD","KRW"];
 
@@ -56,14 +56,19 @@
       for(const s of symbols){
         if (s === base) continue;
         try {
+          // 呼叫自己後端的 /convert
           const url = `${API}?from=${base}&to=${s}&amount=1`;
-          const data = await fetch(url).then(r => r.json());
+          const data = await fetch(url).then(r=>{
+            if (!r.ok) throw new Error(r.status);
+            return r.json();
+          });
           rows.push(`
             <tr>
               <td>${s}</td>
-              <td class="text-end">${data.result.toFixed(4)} ${s}</td>
+              <td class="text-end">${data.result.toFixed(4)} ${s}</td>
             </tr>`);
-        } catch {
+        } catch (e) {
+          console.error("load error", s, e);
           rows.push(`
             <tr>
               <td>${s}</td>
