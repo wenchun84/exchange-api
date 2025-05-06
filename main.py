@@ -1,8 +1,13 @@
-from fastapi import FastAPI, Query, HTTPException
-import httpx, os
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],      # 放心，只有 GET，風險極低
+    allow_methods=["GET"],
+    allow_headers=["*"],
+)
 HOST = "https://api.exchangerate.host"
 API_KEY = os.getenv("XRATE_KEY")      # 從 Render 環境變數讀金鑰
 
