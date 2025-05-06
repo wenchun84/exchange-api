@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="zh-Hant">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>即時匯率計算器</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<div class="container py-4" style="max-width:520px">
+  <h3 class="mb-3 text-center">🌐 即時匯率計算器</h3>
+
+  <div class="row g-2 align-items-end">
+    <div class="col-5">
+      <label class="form-label">從</label>
+      <select id="from" class="form-select"></select>
+    </div>
+    <div class="col-2 text-center">
+      <button class="btn btn-outline-secondary mt-4 w-100" onclick="swap()">⇆</button>
+    </div>
+    <div class="col-5">
+      <label class="form-label">到</label>
+      <select id="to" class="form-select"></select>
+    </div>
+    <div class="col-12">
+      <label class="form-label mt-2">金額</label>
+      <input id="amount" class="form-control" type="number" min="0" value="100">
+    </div>
+    <div class="col-12 d-grid">
+      <button id="btn" class="btn btn-primary mt-3" onclick="convert()">換算</button>
+    </div>
+  </div>
+
+  <div id="result" class="alert alert-info mt-4 d-none"></div>
+  <p class="text-end text-muted mt-3" style="font-size:smaller" id="ts"></p>
+</div>
+
+<script>
+const API = "https://exchange-api-omg7.onrender.com/convert";   // 後端 API
+const currencies = ["USD","TWD","JPY","EUR","CNY","HKD","GBP","AUD","CAD",
+  "CHF","SGD","KRW","THB","MYR","IDR","VND","PHP","NZD","SEK","NOK","DKK",
+  "ZAR","INR","MXN","PLN","CZK","HUF","TRY","SAR","AED","ILS","BRL"];
+
+const selFrom = from, selTo = to, amt = amount, res = result, btn = btn;
+
+currencies.forEach(c=>{
+  selFrom.add(new Option(c,c));
+  selTo.add(new Option(c,c));
+});
+selFrom.value="USD"; selTo.value="JPY";
+document.getElementById('ts').textContent = new Date().toLocaleString();
+
+amt.addEventListener("keyup", e=>{ if(e.key==="Enter") convert() });
+
+function swap(){
+  [selFrom.value, selTo.value] = [selTo.value, selFrom.value];
+}
+
+async function convert(){
+  const f=selFrom.value, t=selTo.value, a=amt.value;
+  if(!a) return;
+  btn.disabled=true; btn.textContent="計算中…";
+  res.classList.add("d-none");
+  try{
+    const url=`${API}?from=${f}&to=${t}&amount=${a}`;
+    const {result} = await fetch(url).then(r=>r.json());
+    res.textContent = `${Number(a).toLocaleString()} ${f} ≈ ${result.toLocaleString(undefined,{maximumFractionDigits:2})} ${t}`;
+    res.classList.remove("d-none","alert-warning");
+    res.classList.add("alert-info");
+  }catch(e){
+    res.textContent="後端服務暫時不可用，請稍後再試";
+    res.classList.remove("d-none","alert-info");
+    res.classList.add("alert-warning");
+  }finally{
+    btn.disabled=false; btn.textContent="換算";
+  }
+}
+</script>
