@@ -24,7 +24,7 @@
       <thead class="table-light">
         <tr>
           <th>貨幣</th>
-          <th class="text-end">1&nbsp;<span id="baseLabel">USD</span> 可換</th>
+          <th class="text-end">1 <span id="baseLabel">USD</span> 可換</th>
         </tr>
       </thead>
       <tbody id="tbody">
@@ -35,44 +35,40 @@
   </div>
 
   <script>
-    // 同源呼叫 /convert，不會有 CORS 或 API_KEY 問題
+    // 同源呼叫自己寫的 /convert
     const API = "/convert";
     const symbols = ["USD","TWD","JPY","EUR","CNY","HKD","GBP","AUD","SGD","KRW"];
 
-    // 抓到 DOM
     const baseSel   = document.getElementById('base');
     const tbody     = document.getElementById('tbody');
     const baseLabel = document.getElementById('baseLabel');
     const ts        = document.getElementById('ts');
 
     baseSel.addEventListener("change", loadRates);
-    loadRates();  // 首次載入
+    loadRates();
 
     async function loadRates(){
       const base = baseSel.value;
       baseLabel.textContent = base;
-      // 先清掉表格
       tbody.innerHTML = '<tr><td colspan="2">載入中…</td></tr>';
 
       const rows = [];
       for(const s of symbols){
-        if(s === base) continue;
+        if (s === base) continue;
         try {
           const url = `${API}?from=${base}&to=${s}&amount=1`;
-          const result = await fetch(url).then(r => r.json());
+          const data = await fetch(url).then(r => r.json());
           rows.push(`
             <tr>
               <td>${s}</td>
-              <td class="text-end">${result.result.toFixed(4)} ${s}</td>
-            </tr>
-          `);
-        } catch(e){
+              <td class="text-end">${data.result.toFixed(4)} ${s}</td>
+            </tr>`);
+        } catch {
           rows.push(`
             <tr>
               <td>${s}</td>
               <td class="text-end text-warning">錯誤</td>
-            </tr>
-          `);
+            </tr>`);
         }
       }
 
