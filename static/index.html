@@ -28,34 +28,39 @@
 </div>
 
 <script>
-const API = "/convert";                                   // ✔ 同一主機相對路徑
+const API = "https://api.exchangerate.host/latest";   // 免費端點，不須 XRATE_KEY
 const symbols = ["USD","TWD","JPY","EUR","CNY","HKD","GBP","AUD","SGD","KRW"];
 
-const baseSel = base, tbody = document.getElementById('tbody'), baseLabel = baseLabel;
+// 正確抓 DOM
+const baseSel = document.getElementById('base');
+const tbody   = document.getElementById('tbody');
+const baseLbl = document.getElementById('baseLabel');
+const ts      = document.getElementById('ts');
 
 baseSel.addEventListener("change", loadRates);
-loadRates();                                              // 首次載入
+loadRates();                 // 首次載入
 
 async function loadRates(){
-  const b = baseSel.value;
-  baseLabel.textContent = b;
+  const base = baseSel.value;
+  baseLbl.textContent = base;
   tbody.innerHTML = '<tr><td colspan="2">載入中…</td></tr>';
-  const rows = [];
 
-  for(const s of symbols){
-    if(s === b) continue;
-    try{
-      const url=`${API}?from=${b}&to=${s}&amount=1`;
-      const r = await fetch(url).then(r=>r.json());
-      if(r.result === undefined) throw r;
-      rows.push(`<tr><td>${s}</td><td class="text-end">${r.result.toFixed(4)} ${s}</td></tr>`);
-    }catch(e){
-      rows.push(`<tr><td>${s}</td><td class="text-end text-warning">錯誤</td></tr>`);
-      console.error("convert error", s, e);
-    }
+  try{
+    // 一次抓全部匯率
+    const url = `${API}?base=${base}&symbols=${symbols.filter(s=>s!==base).join(",")}`;
+    const { rates } = await fetch(url).then(r=>r.json());
+
+    const rows = Object.entries(rates).map(
+      ([k,v]) => `<tr><td>${k}</td><td class="text-end">${v.toFixed(4)} ${k}</td></tr>`
+    ).join("");
+
+    tbody.innerHTML = rows;
+  }catch(e){
+    console.error("rate load error:", e);
+    tbody.innerHTML = '<tr><td colspan="2" class="text-warning">服務暫時不可用</td></tr>';
   }
 
-  tbody.innerHTML = rows.join("");
-  document.getElementById('ts').textContent = "更新時間：" + new Date().toLocaleString();
+  ts.textContent = "更新時間：" + new Date().toLocaleString();
 }
 </script>
+
