@@ -47,7 +47,7 @@ async def convert(
 ):
     try:
         params = {"from": from_, "to": to, "amount": amount}
-        if API_KEY:
+        if API_KEY is not None and API_KEY != "":
             params["access_key"] = API_KEY
 
         async with httpx.AsyncClient(timeout=8) as client:
