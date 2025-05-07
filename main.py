@@ -1,64 +1,50 @@
 # src/main.py
-
-from fastapi import FastAPI, Query, HTTPException
-from fastapi.staticfiles import StaticFiles
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse, JSONResponse
 import httpx, os
 
-# ——————————————
-# 建立 FastAPI app
-# ——————————————
 app = FastAPI()
 
-# ——————————————
-# 把 static 目錄 mount 在 /
-# （這樣造訪 根網址 就會回傳 static/index.html）
-# ——————————————
-app.mount("/", StaticFiles(directory="static", html=True), name="static")
-
-# ——————————————
-# 加上 CORS middleware，允許前端同源呼叫 GET /latest
-# ——————————————
+# CORS (如果你只用同源內部呼叫，其實可以捨棄)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],    
+    allow_origins=["*"],
     allow_methods=["GET"],
     allow_headers=["*"],
 )
 
-# ——————————————
 # 外部匯率 API 設定
-# ——————————————
 HOST    = "https://api.exchangerate.host"
-API_KEY = os.getenv("XRATE_KEY", "")   # 若沒有 key，留空字串
+API_KEY = os.getenv("XRATE_KEY", "")  # render 上設定環境變數 XRATE_KEY
 
-# ——————————————
-# 代理 /latest：前端呼叫同源 /latest?base=...&symbols=...
-# 由後端去請求真正的 exchangerate.host/latest
-# 把結果原封不動回傳給前端
-# ——————————————
+# 1) /latest 動態端點，一定要先宣告
 @app.get("/latest")
-async def latest(
-    base: str    = Query("USD", description="基準貨幣"),
-    symbols: str = Query("",    description="逗號分隔的欲查詢貨幣列表"),
-):
-    # 組參數
-    params = {"base": base, "symbols": symbols}
+async def latest(base: str = "USD", symbols: str = ""):
+    params = {"base": base}
+    if symbols:
+        params["symbols"] = symbols
     if API_KEY:
         params["access_key"] = API_KEY
 
     try:
-        async with httpx.AsyncClient(timeout=8) as client:
+        async with httpx.AsyncClient(timeout=10) as client:
             r = await client.get(f"{HOST}/latest", params=params)
             r.raise_for_status()
-            data = r.json()
+            return JSONResponse(content=r.json())
     except Exception as e:
-        # 印錯誤到 Render logs，前端顯示 502
-        print("latest proxy error:", e)
+        # 在 Render 的 log 裡就能看到錯在哪
+        print("proxy /latest error:", e)
         raise HTTPException(status_code=502, detail="rate-service unavailable")
 
-    # 確認回來的 JSON 裡面有 rates
-    if "rates" not in data:
-        raise HTTPException(status_code=502, detail="no rates in response")
 
-    return data
+# 2) 直接把 index.html 回傳給根目錄
+@app.get("/")
+async def root():
+    return FileResponse("static/index.html")
+
+
+# 3) catch-all，讓 SPA 前端路由（如果有）也能直接回 index.html
+@app.get("/{full_path:path}")
+async def spa(full_path: str):
+    return FileResponse("static/index.html")
